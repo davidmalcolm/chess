@@ -1,0 +1,8 @@
+[package]
+
+name = "chess"
+version = "0.0.1"
+authors = [ "David Malcolm" ]
+
+[dependencies]
+rand = "0.3"
