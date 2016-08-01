@@ -253,21 +253,33 @@ impl fmt::Display for Move {
     }
 }
 
+// Clone is only implemented for arrays of len up to 32, so we
+// implement it by introducing a tuple struct wrapping the array
+// of 64 values:
+struct SquareArray([i8; 64]);
+
+impl Clone for SquareArray {
+  fn clone(&self) -> SquareArray {
+      SquareArray(self.0)
+  }
+}
+
+#[derive(Clone)]
 pub struct BoardState {
-    squares: [i8; 64],
+    squares: SquareArray,
     to_play: Side
 }
 
 impl BoardState {
     fn get_ss(&self, xy : Coord) -> SquareState {
-        let ival: i8 = self.squares[xy.as_index ()];
+        let ival: i8 = self.squares.0[xy.as_index ()];
         return SquareState::from_i8(ival);
     }
 
     fn print_as_i8(&self) {
         for y in 0..8 {
             for x in 0..8 {
-                print!("{}{}: {:2}  ", x, y, self.squares[(y*8) + x]);
+                print!("{}{}: {:2}  ", x, y, self.squares.0[(y*8) + x]);
                 //print!("{:2}  ", self.squares[(y*8) + x]);
             }
             println!("");
@@ -326,7 +338,7 @@ impl BoardState {
         }
     }
 
-    /// Set `self` to the starting position.
+    /// Get the starting position.
     ///
     ///   abcdefgh
     ///  8♜♞♝♛♚♝♞♜8
@@ -339,42 +351,45 @@ impl BoardState {
     ///  1♖♘♗♕♔♗♘♖1
     ///   abcdefgh
     ///
-    fn set_start_position(&mut self) {
-        for y in 0..8 {
-            for x in 0..8 {
-                self.squares[(y * 8) + x] = SquareState::Empty.as_i8();
-            }
-        }
-        self.set_occupied(A1, Side::White, Piece::Rook);
-        self.set_occupied(B1, Side::White, Piece::Knight);
-        self.set_occupied(C1, Side::White, Piece::Bishop);
-        self.set_occupied(D1, Side::White, Piece::Queen);
-        self.set_occupied(E1, Side::White, Piece::King);
-        self.set_occupied(F1, Side::White, Piece::Bishop);
-        self.set_occupied(G1, Side::White, Piece::Knight);
-        self.set_occupied(H1, Side::White, Piece::Rook);
+    fn start_position() -> BoardState {
+        let mut out = BoardState::empty_board();
+
+        out.set_occupied(A1, Side::White, Piece::Rook);
+        out.set_occupied(B1, Side::White, Piece::Knight);
+        out.set_occupied(C1, Side::White, Piece::Bishop);
+        out.set_occupied(D1, Side::White, Piece::Queen);
+        out.set_occupied(E1, Side::White, Piece::King);
+        out.set_occupied(F1, Side::White, Piece::Bishop);
+        out.set_occupied(G1, Side::White, Piece::Knight);
+        out.set_occupied(H1, Side::White, Piece::Rook);
 
         for x in 0..8 {
-            self.set_occupied(Coord {x:x, y:1}, Side::White, Piece::Pawn);
-            self.set_occupied(Coord {x:x, y:6}, Side::Black, Piece::Pawn);
+            out.set_occupied(Coord {x:x, y:1}, Side::White, Piece::Pawn);
+            out.set_occupied(Coord {x:x, y:6}, Side::Black, Piece::Pawn);
         }
 
-        self.set_occupied(A8, Side::Black, Piece::Rook);
-        self.set_occupied(B8, Side::Black, Piece::Knight);
-        self.set_occupied(C8, Side::Black, Piece::Bishop);
-        self.set_occupied(D8, Side::Black, Piece::Queen);
-        self.set_occupied(E8, Side::Black, Piece::King);
-        self.set_occupied(F8, Side::Black, Piece::Bishop);
-        self.set_occupied(G8, Side::Black, Piece::Knight);
-        self.set_occupied(H8, Side::Black, Piece::Rook);
+        out.set_occupied(A8, Side::Black, Piece::Rook);
+        out.set_occupied(B8, Side::Black, Piece::Knight);
+        out.set_occupied(C8, Side::Black, Piece::Bishop);
+        out.set_occupied(D8, Side::Black, Piece::Queen);
+        out.set_occupied(E8, Side::Black, Piece::King);
+        out.set_occupied(F8, Side::Black, Piece::Bishop);
+        out.set_occupied(G8, Side::Black, Piece::Knight);
+        out.set_occupied(H8, Side::Black, Piece::Rook);
 
-        self.to_play = Side::White;
+        return out;
+    }
+
+    fn empty_board() -> BoardState {
+        let empty = SquareState::Empty.as_i8();
+        return BoardState {squares : SquareArray([empty; 64]),
+                           to_play:Side::White};
     }
 
     fn set_square(&mut self, xy: Coord, ss: SquareState) {
         let x = xy.x as usize;
         let y = xy.y as usize;
-        self.squares[(y * 8) + x] = ss.as_i8();
+        self.squares.0[(y * 8) + x] = ss.as_i8();
     }
 
     fn set_occupied(&mut self, xy: Coord, side: Side, piece: Piece) {
@@ -552,17 +567,19 @@ impl BoardState {
         }
     }
 
-    fn apply_move(&self, m: &Move, out: &mut BoardState) {
-        out.squares = self.squares;
+    fn apply_move(&self, m: &Move) -> BoardState {
+        let mut out = self.clone();
 
         let from_index = m.from.as_index();
         let to_index = m.to.as_index();
 
-        out.squares[from_index] = SquareState::Empty.as_i8();
-        out.squares[to_index] = self.squares[from_index];
+        out.squares.0[from_index] = SquareState::Empty.as_i8();
+        out.squares.0[to_index] = self.squares.0[from_index];
         // TODO: promotion
 
         out.to_play = self.to_play.invert ();
+
+        return out;
     }
 
     fn get_value(&self) -> i32 {
@@ -589,8 +606,7 @@ impl BoardState {
 }
 
 fn main() {
-    let mut pos = BoardState {squares : [0; 64], to_play:Side::White};
-    pos.set_start_position();
+    let mut pos = BoardState::start_position();
     pos.print();
     pos.print_as_i8();
     pos.print_unicode();
@@ -618,8 +634,7 @@ fn main() {
             _ => {}
         }
         print!("\n\n");
-        let mut newpos = BoardState {squares : [0; 64], to_play:Side::White}; // FIXME
-        pos.apply_move(m, &mut newpos);
+        let newpos = pos.apply_move(m);
         newpos.print_unicode();
         pos = newpos;
         println!("Value: {}", pos.get_value())
@@ -655,8 +670,7 @@ mod tests {
 
     #[test]
     fn start_position() {
-        let mut pos = BoardState {squares : [0; 64], to_play:Side::White};
-        pos.set_start_position();
+        let pos = BoardState::start_position();
 
         assert_eq!(pos.to_play, Side::White);
 
@@ -668,7 +682,7 @@ mod tests {
     #[test]
     ///
     fn pawn_moves() {
-        let mut pos = BoardState {squares : [0; 64], to_play:Side::White};
+        let mut pos = BoardState::empty_board();
         pos.set_occupied(B2, Side::White, Piece::Pawn);
         pos.set_occupied(D3, Side::White, Piece::Pawn);
         pos.set_occupied(B7, Side::Black, Piece::Pawn);
