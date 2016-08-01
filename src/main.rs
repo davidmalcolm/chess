@@ -326,47 +326,61 @@ impl BoardState {
         }
     }
 
+    /// Set `self` to the starting position.
+    ///
+    ///   abcdefgh
+    ///  8♜♞♝♛♚♝♞♜8
+    ///  7♟♟♟♟♟♟♟♟7
+    ///  6        6
+    ///  5        5
+    ///  4        4
+    ///  3        3
+    ///  2♙♙♙♙♙♙♙♙2
+    ///  1♖♘♗♕♔♗♘♖1
+    ///   abcdefgh
+    ///
     fn set_start_position(&mut self) {
         for y in 0..8 {
             for x in 0..8 {
                 self.squares[(y * 8) + x] = SquareState::Empty.as_i8();
             }
         }
-        self.set_occupied(0, 0, Side::White, Piece::Rook);
-        self.set_occupied(1, 0, Side::White, Piece::Knight);
-        self.set_occupied(2, 0, Side::White, Piece::Bishop);
-        self.set_occupied(3, 0, Side::White, Piece::Queen);
-        self.set_occupied(4, 0, Side::White, Piece::King);
-        self.set_occupied(5, 0, Side::White, Piece::Bishop);
-        self.set_occupied(6, 0, Side::White, Piece::Knight);
-        self.set_occupied(7, 0, Side::White, Piece::Rook);
+        self.set_occupied(A1, Side::White, Piece::Rook);
+        self.set_occupied(B1, Side::White, Piece::Knight);
+        self.set_occupied(C1, Side::White, Piece::Bishop);
+        self.set_occupied(D1, Side::White, Piece::Queen);
+        self.set_occupied(E1, Side::White, Piece::King);
+        self.set_occupied(F1, Side::White, Piece::Bishop);
+        self.set_occupied(G1, Side::White, Piece::Knight);
+        self.set_occupied(H1, Side::White, Piece::Rook);
 
         for x in 0..8 {
-            self.set_occupied(x, 1, Side::White, Piece::Pawn);
-            self.set_occupied(x, 6, Side::Black, Piece::Pawn);
+            self.set_occupied(Coord {x:x, y:1}, Side::White, Piece::Pawn);
+            self.set_occupied(Coord {x:x, y:6}, Side::Black, Piece::Pawn);
         }
 
-        self.set_occupied(0, 7, Side::Black, Piece::Rook);
-        self.set_occupied(1, 7, Side::Black, Piece::Knight);
-        self.set_occupied(2, 7, Side::Black, Piece::Bishop);
-        self.set_occupied(3, 7, Side::Black, Piece::Queen);
-        self.set_occupied(4, 7, Side::Black, Piece::King);
-        self.set_occupied(5, 7, Side::Black, Piece::Bishop);
-        self.set_occupied(6, 7, Side::Black, Piece::Knight);
-        self.set_occupied(7, 7, Side::Black, Piece::Rook);
+        self.set_occupied(A8, Side::Black, Piece::Rook);
+        self.set_occupied(B8, Side::Black, Piece::Knight);
+        self.set_occupied(C8, Side::Black, Piece::Bishop);
+        self.set_occupied(D8, Side::Black, Piece::Queen);
+        self.set_occupied(E8, Side::Black, Piece::King);
+        self.set_occupied(F8, Side::Black, Piece::Bishop);
+        self.set_occupied(G8, Side::Black, Piece::Knight);
+        self.set_occupied(H8, Side::Black, Piece::Rook);
 
         self.to_play = Side::White;
     }
 
-    fn set_square(&mut self, x: usize, y: usize, ss: SquareState) {
+    fn set_square(&mut self, xy: Coord, ss: SquareState) {
+        let x = xy.x as usize;
+        let y = xy.y as usize;
         self.squares[(y * 8) + x] = ss.as_i8();
     }
 
-    fn set_occupied(&mut self, x: usize, y: usize,
-                    side: Side, piece: Piece) {
+    fn set_occupied(&mut self, xy: Coord, side: Side, piece: Piece) {
         let sp = SidedPiece {side: side, piece: piece};
         let ss = SquareState::Occupied(sp);
-        self.set_square (x, y, ss);
+        self.set_square (xy, ss);
     }
 
     fn get_moves(&self, moves: &mut Vec<Move>) {
@@ -633,10 +647,10 @@ mod tests {
 
     #[test]
     fn coord_names() {
-        assert_eq!(Coord {x: 0, y: 0}.name(), "a1");
-        assert_eq!(Coord {x: 7, y: 0}.name(), "h1");
-        assert_eq!(Coord {x: 0, y: 7}.name(), "a8");
-        assert_eq!(Coord {x: 7, y: 7}.name(), "h8");
+        assert_eq!(A1.name(), "a1");
+        assert_eq!(H1.name(), "h1");
+        assert_eq!(A8.name(), "a8");
+        assert_eq!(H8.name(), "h8");
     }
 
     #[test]
@@ -655,10 +669,10 @@ mod tests {
     ///
     fn pawn_moves() {
         let mut pos = BoardState {squares : [0; 64], to_play:Side::White};
-        pos.set_occupied(1, 1, Side::White, Piece::Pawn);
-        pos.set_occupied(3, 2, Side::White, Piece::Pawn);
-        pos.set_occupied(1, 6, Side::Black, Piece::Pawn);
-        pos.set_occupied(3, 5, Side::Black, Piece::Pawn);
+        pos.set_occupied(B2, Side::White, Piece::Pawn);
+        pos.set_occupied(D3, Side::White, Piece::Pawn);
+        pos.set_occupied(B7, Side::Black, Piece::Pawn);
+        pos.set_occupied(D6, Side::Black, Piece::Pawn);
         //pos.print_unicode();
         /*  abcdefgh
            8        8
