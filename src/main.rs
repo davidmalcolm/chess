@@ -470,6 +470,10 @@ impl BoardState {
             to.y += delta_y;
             if self.can_move_to(to, side) {
                 moves.push(Move {from: from, to: to});
+                if !self.is_unoccupied(to) {
+                    // "to" is a capture; stop iterating in this direction
+                    return;
+                }
             } else {
                 return;
             }
@@ -829,5 +833,38 @@ mod tests {
         pos.get_pawn_moves(D6, Side::Black, &mut moves);
         assert_eq!(moves.len(), 1);
         assert_eq!(moves[0].to, D5);
+    }
+
+    #[test]
+    fn rook_moves() {
+        let mut pos = BoardState::empty_board();
+        pos.set_occupied(B2, Side::White, Piece::Pawn);
+        pos.set_occupied(D3, Side::White, Piece::Pawn);
+        pos.set_occupied(B7, Side::Black, Piece::Pawn);
+        pos.set_occupied(D6, Side::Black, Piece::Pawn);
+        pos.set_occupied(D4, Side::Black, Piece::Rook);
+        /*  abcdefgh
+           8        8
+           7 ♟      7
+           6   ♟    6
+           5        5
+           4   ♜    4
+           3   ♙    3
+           2 ♙      2
+           1        1
+            abcdefgh  */
+        // d4: black rook
+        let mut moves = Vec::new();
+        pos.get_rook_moves(D4, Side::Black, &mut moves);
+        assert_eq!(moves.len(), 9);
+        assert_eq!(moves[0].to, D3); // capture
+        assert_eq!(moves[1].to, D5);
+        assert_eq!(moves[2].to, C4);
+        assert_eq!(moves[3].to, B4);
+        assert_eq!(moves[4].to, A4);
+        assert_eq!(moves[5].to, E4);
+        assert_eq!(moves[6].to, F4);
+        assert_eq!(moves[7].to, G4);
+        assert_eq!(moves[8].to, H4);
     }
 }
