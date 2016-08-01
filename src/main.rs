@@ -18,7 +18,7 @@ impl Side {
     }
 }
 
-enum Piece {
+pub enum Piece {
     King,
     Queen,
     Rook,
@@ -128,8 +128,7 @@ impl SquareState {
     }
 }
 
-#[derive(Clone)]
-#[derive(Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Coord
 {
     x: i8,
@@ -169,7 +168,79 @@ impl fmt::Display for Coord {
     }
 }
 
+pub const A1 : Coord = Coord {x: 0, y: 0};
+pub const B1 : Coord = Coord {x: 1, y: 0};
+pub const C1 : Coord = Coord {x: 2, y: 0};
+pub const D1 : Coord = Coord {x: 3, y: 0};
+pub const E1 : Coord = Coord {x: 4, y: 0};
+pub const F1 : Coord = Coord {x: 5, y: 0};
+pub const G1 : Coord = Coord {x: 6, y: 0};
+pub const H1 : Coord = Coord {x: 7, y: 0};
 
+pub const A2 : Coord = Coord {x: 0, y: 1};
+pub const B2 : Coord = Coord {x: 1, y: 1};
+pub const C2 : Coord = Coord {x: 2, y: 1};
+pub const D2 : Coord = Coord {x: 3, y: 1};
+pub const E2 : Coord = Coord {x: 4, y: 1};
+pub const F2 : Coord = Coord {x: 5, y: 1};
+pub const G2 : Coord = Coord {x: 6, y: 1};
+pub const H2 : Coord = Coord {x: 7, y: 1};
+
+pub const A3 : Coord = Coord {x: 0, y: 2};
+pub const B3 : Coord = Coord {x: 1, y: 2};
+pub const C3 : Coord = Coord {x: 2, y: 2};
+pub const D3 : Coord = Coord {x: 3, y: 2};
+pub const E3 : Coord = Coord {x: 4, y: 2};
+pub const F3 : Coord = Coord {x: 5, y: 2};
+pub const G3 : Coord = Coord {x: 6, y: 2};
+pub const H3 : Coord = Coord {x: 7, y: 2};
+
+pub const A4 : Coord = Coord {x: 0, y: 3};
+pub const B4 : Coord = Coord {x: 1, y: 3};
+pub const C4 : Coord = Coord {x: 2, y: 3};
+pub const D4 : Coord = Coord {x: 3, y: 3};
+pub const E4 : Coord = Coord {x: 4, y: 3};
+pub const F4 : Coord = Coord {x: 5, y: 3};
+pub const G4 : Coord = Coord {x: 6, y: 3};
+pub const H4 : Coord = Coord {x: 7, y: 3};
+
+pub const A5 : Coord = Coord {x: 0, y: 4};
+pub const B5 : Coord = Coord {x: 1, y: 4};
+pub const C5 : Coord = Coord {x: 2, y: 4};
+pub const D5 : Coord = Coord {x: 3, y: 4};
+pub const E5 : Coord = Coord {x: 4, y: 4};
+pub const F5 : Coord = Coord {x: 5, y: 4};
+pub const G5 : Coord = Coord {x: 6, y: 4};
+pub const H5 : Coord = Coord {x: 7, y: 4};
+
+pub const A6 : Coord = Coord {x: 0, y: 5};
+pub const B6 : Coord = Coord {x: 1, y: 5};
+pub const C6 : Coord = Coord {x: 2, y: 5};
+pub const D6 : Coord = Coord {x: 3, y: 5};
+pub const E6 : Coord = Coord {x: 4, y: 5};
+pub const F6 : Coord = Coord {x: 5, y: 5};
+pub const G6 : Coord = Coord {x: 6, y: 5};
+pub const H6 : Coord = Coord {x: 7, y: 5};
+
+pub const A7 : Coord = Coord {x: 0, y: 6};
+pub const B7 : Coord = Coord {x: 1, y: 6};
+pub const C7 : Coord = Coord {x: 2, y: 6};
+pub const D7 : Coord = Coord {x: 3, y: 6};
+pub const E7 : Coord = Coord {x: 4, y: 6};
+pub const F7 : Coord = Coord {x: 5, y: 6};
+pub const G7 : Coord = Coord {x: 6, y: 6};
+pub const H7 : Coord = Coord {x: 7, y: 6};
+
+pub const A8 : Coord = Coord {x: 0, y: 7};
+pub const B8 : Coord = Coord {x: 1, y: 7};
+pub const C8 : Coord = Coord {x: 2, y: 7};
+pub const D8 : Coord = Coord {x: 3, y: 7};
+pub const E8 : Coord = Coord {x: 4, y: 7};
+pub const F8 : Coord = Coord {x: 5, y: 7};
+pub const G8 : Coord = Coord {x: 6, y: 7};
+pub const H8 : Coord = Coord {x: 7, y: 7};
+
+#[derive(PartialEq, Debug)]
 struct Move {
     from: Coord,
     to: Coord,
@@ -397,10 +468,13 @@ impl BoardState {
 
     fn get_pawn_moves(&self, from: Coord, side: Side, moves: &mut Vec<Move>) {
         let dir;
-        if self.to_play == Side::White {
+        let initial_rank;
+        if side == Side::White {
             dir = 1;
+            initial_rank = 1;
         } else {
             dir = -1;
+            initial_rank = 6;
         }
         // Standard move:
         let to = Coord {x: from.x, y: from.y + dir};
@@ -408,9 +482,11 @@ impl BoardState {
             moves.push(Move {from: from, to: to});
 
             // Initial double-move:
-            let to = Coord {x: from.x, y: from.y + dir + dir};
-            if to.is_valid() && self.is_unoccupied(to) {
-                moves.push(Move {from: from, to: to});
+            if from.y == initial_rank {
+                let to = Coord {x: from.x, y: from.y + dir + dir};
+                if to.is_valid() && self.is_unoccupied(to) {
+                    moves.push(Move {from: from, to: to});
+                }
             }
         }
 
@@ -573,5 +649,51 @@ mod tests {
         let mut moves = Vec::new();
         pos.get_moves(&mut moves);
         assert_eq!(moves.len(), 20);
+    }
+
+    #[test]
+    ///
+    fn pawn_moves() {
+        let mut pos = BoardState {squares : [0; 64], to_play:Side::White};
+        pos.set_occupied(1, 1, Side::White, Piece::Pawn);
+        pos.set_occupied(3, 2, Side::White, Piece::Pawn);
+        pos.set_occupied(1, 6, Side::Black, Piece::Pawn);
+        pos.set_occupied(3, 5, Side::Black, Piece::Pawn);
+        //pos.print_unicode();
+        /*  abcdefgh
+           8        8
+           7 ♟      7
+           6   ♟    6
+           5        5
+           4        4
+           3   ♙    3
+           2 ♙      2
+           1        1
+            abcdefgh  */
+        // b2: white pawn in initial rank
+        let mut moves = Vec::new();
+        pos.get_pawn_moves(B2, Side::White, &mut moves);
+        assert_eq!(moves.len(), 2);
+        assert_eq!(moves[0].to, B3);
+        assert_eq!(moves[1].to, B4);
+
+        // d3: white pawn not in initial rank
+        let mut moves = Vec::new();
+        pos.get_pawn_moves(D3, Side::White, &mut moves);
+        assert_eq!(moves.len(), 1);
+        assert_eq!(moves[0].to, D4);
+
+        // b7: black pawn in initial rank
+        let mut moves = Vec::new();
+        pos.get_pawn_moves(B7, Side::Black, &mut moves);
+        assert_eq!(moves.len(), 2);
+        assert_eq!(moves[0].to, B6);
+        assert_eq!(moves[1].to, B5);
+
+        // d6: black pawn not in initial rank
+        let mut moves = Vec::new();
+        pos.get_pawn_moves(D6, Side::Black, &mut moves);
+        assert_eq!(moves.len(), 1);
+        assert_eq!(moves[0].to, D5);
     }
 }
