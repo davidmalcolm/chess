@@ -415,7 +415,6 @@ impl BoardState {
                 }
             }
         }
-        println!("");
     }
 
     fn get_moves_from(&self, sp: SidedPiece, from: Coord,
