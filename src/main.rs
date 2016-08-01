@@ -1,5 +1,6 @@
 extern crate rand;
-use rand::{thread_rng, sample};
+use rand::{thread_rng, sample, ThreadRng};
+use std::cmp;
 use std::fmt;
 
 
@@ -240,7 +241,7 @@ pub const F8 : Coord = Coord {x: 5, y: 7};
 pub const G8 : Coord = Coord {x: 6, y: 7};
 pub const H8 : Coord = Coord {x: 7, y: 7};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 struct Move {
     from: Coord,
     to: Coord,
@@ -603,6 +604,102 @@ impl BoardState {
         }
         return value;
     }
+
+    // Naive minimax implementation
+    fn minimax(&self, depth: u32, side: Side) -> i32 {
+        if depth == 0 { return self.get_value(); }
+
+        let mut moves = Vec::new();
+        self.get_moves(&mut moves);
+
+        match side {
+            Side::White => {
+                let mut best_value = i32::min_value();
+                for m in moves {
+                    let newpos = self.apply_move(&m);
+                    let v = newpos.minimax(depth - 1, Side::Black);
+                    best_value = cmp::max(best_value, v);
+                }
+                return best_value;
+            },
+            Side::Black => {
+                let mut best_value = i32::max_value();
+                for m in moves {
+                    let newpos = self.apply_move(&m);
+                    let v = newpos.minimax(depth - 1, Side::White);
+                    best_value = cmp::min(best_value, v);
+                }
+                return best_value;
+            },
+        }
+    }
+}
+
+trait Player {
+    /// Return Some(move), or None for surrender/stalemate
+    fn play(&mut self, &BoardState) -> Option<Move>;
+}
+
+struct RandomPlayer {
+    rng: rand::ThreadRng
+}
+
+impl RandomPlayer {
+    fn new() -> RandomPlayer {
+        RandomPlayer {rng: thread_rng()}
+    }
+}
+
+impl Player for RandomPlayer {
+    fn play(&mut self, bs: &BoardState) -> Option<Move> {
+        let mut moves = Vec::new();
+        bs.get_moves(&mut moves);
+        if moves.len() == 0 {
+            return None;
+            // TODO: handle checkmate/stalemate
+        }
+        let m : Move = sample(&mut self.rng, moves, 1)[0].clone();
+        return Some(m);
+    }
+}
+
+struct MinimaxPlayer {
+    depth: u32
+}
+
+impl Player for MinimaxPlayer {
+    fn play(&mut self, bs: &BoardState) -> Option<Move> {
+        let mut moves = Vec::new();
+        bs.get_moves(&mut moves);
+        let mut best_move = None;
+        match bs.to_play {
+            Side::White => {
+                let mut best_value = i32::min_value();
+                for m in moves {
+                    let newpos = bs.apply_move(&m);
+                    let v = newpos.minimax(self.depth, newpos.to_play);
+                    if v > best_value {
+                        best_value = v;
+                        best_move = Some(m);
+                    }
+                }
+            },
+            Side::Black => {
+                let mut best_value = i32::max_value();
+                for m in moves {
+                    let newpos = bs.apply_move(&m);
+                    let v = newpos.minimax(self.depth, newpos.to_play);
+                    println!("{}: move has value: {}", m, v);
+                    if v < best_value {
+                        best_value = v;
+                        best_move = Some(m);
+                    }
+                }
+                println!("best move has value: {}", best_value);
+            },
+        }
+        return best_move;
+    }
 }
 
 fn main() {
@@ -610,17 +707,27 @@ fn main() {
     pos.print();
     pos.print_as_i8();
     pos.print_unicode();
+
+    let mut white = RandomPlayer::new();
+    let mut black = MinimaxPlayer {depth: 3};
+
     loop {
-        // Pick random moves:
-        let mut rng = thread_rng();
-        let mut moves = Vec::new();
-        pos.get_moves(&mut moves);
-        if moves.len() == 0 {
-            println!("No valid moves");
-            break;
-            // TODO: handle checkmate
+        // Let active player select a move.
+        let mm = match pos.to_play {
+            Side::White => white.play(&pos),
+            Side::Black => black.play(&pos)
+        };
+        let m;
+        match mm {
+            Some(m1) => m = m1,
+            None => {
+                println!("No valid moves");
+                // TODO: handle checkmate/stalemate
+                break;
+            }
         }
-        let ref m = sample(&mut rng, moves, 1)[0];
+
+        // Carry out the move.
         let ss = pos.get_ss(m.from);
         match ss {
             SquareState::Empty => panic!(),
@@ -634,7 +741,7 @@ fn main() {
             _ => {}
         }
         print!("\n\n");
-        let newpos = pos.apply_move(m);
+        let newpos = pos.apply_move(&m);
         newpos.print_unicode();
         pos = newpos;
         println!("Value: {}", pos.get_value())
